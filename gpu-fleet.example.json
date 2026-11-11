@@ -1,0 +1,17 @@
+{
+  "interval": 2,
+  "hosts": [
+    {
+      "name": "desktop",
+      "ssh": "local"
+    },
+    {
+      "name": "trainer",
+      "ssh": "me@10.0.0.5"
+    },
+    {
+      "name": "llm-box",
+      "ssh": "llm-box"
+    }
+  ]
+}

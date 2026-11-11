@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/omarchy/omarchy/main/schemas/plugin.json",
+  "schemaVersion": 1,
+  "id": "io.github.meyert11.gpu-fleet",
+  "name": "GPU Fleet",
+  "version": "0.2.0",
+  "author": "Travis Meyer (meyert11)",
+  "license": "MIT",
+  "description": "Watch the GPUs on this machine and on any number of remote Linux hosts from the bar: utilization, VRAM, RAM used by GPU processes, temperature, power and per-GPU processes. AMD and Intel (kernel sysfs) and NVIDIA (nvidia-smi). Nothing is installed on the remote hosts: a stdlib Python agent is streamed over one SSH session per host.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "GPU Fleet",
+    "description": "Compact utilization + VRAM meters for the GPUs of one host (the tab last picked in the panel); a dot flags hot or offline hosts that aren't shown. Click for a panel with a tab per host.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "hotTemp": 85
+    },
+    "schema": [
+      {
+        "key": "hotTemp",
+        "type": "integer",
+        "label": "Hot temperature (°C)",
+        "min": 60,
+        "max": 110,
+        "step": 5,
+        "defaultValue": 85,
+        "description": "A GPU's meter turns red at or above this temperature (junction on AMD, core on NVIDIA, CPU package on integrated Intel)."
+      }
+    ]
+  }
+}
