@@ -145,12 +145,17 @@ class Host:
             return
         # Drain stderr concurrently: a chatty host filling the pipe would
         # otherwise block ssh and freeze the session. Keep the last line.
+        # Reads are size-capped so a host can't grow our memory with one
+        # endless line; an over-long line is kept as its first 200 chars.
         last_err = []
 
         def drain():
-            for err_line in self.proc.stderr:
-                if err_line.strip():
-                    last_err[:] = [err_line.strip()[:200]]
+            while True:
+                chunk = self.proc.stderr.readline(4096)
+                if not chunk:
+                    return
+                if chunk.strip():
+                    last_err[:] = [chunk.strip()[:200]]
 
         drainer = threading.Thread(target=drain, daemon=True)
         drainer.start()
@@ -159,11 +164,17 @@ class Host:
             self.proc.stdin.close()
         except OSError:
             pass
-        for line in self.proc.stdout:
-            if self.stop:
+        oversized = False
+        while not self.stop:
+            # Bounded read: an unterminated or huge line from a misbehaving
+            # host ends the session instead of being buffered without limit.
+            line = self.proc.stdout.readline(MAX_LINE + 1)
+            if not line:
                 break
             if len(line) > MAX_LINE:
-                continue
+                oversized = True
+                self.proc.terminate()
+                break
             try:
                 sample = json.loads(line)
             except ValueError:
@@ -177,7 +188,9 @@ class Host:
             self.on_update()
         self.proc.wait()
         drainer.join(timeout=2)
-        if last_err:
+        if oversized:
+            self.error = "agent sent a line over %d KiB; reconnecting" % (MAX_LINE // 1024)
+        elif last_err:
             self.error = last_err[0]
         elif self.proc.returncode:
             self.error = "ssh exited %d" % self.proc.returncode
